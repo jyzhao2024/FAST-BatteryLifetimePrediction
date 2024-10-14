@@ -1,0 +1,1 @@
+% The code of FAST for Lifetime Prediction is available upon request to J. Zhao at jyzhao@ucdavis.edu for the academic license.  The code of data processing is available without agreeing to a license.
