@@ -8,6 +8,7 @@ from scipy import stats
 from scipy.optimize import leastsq
 from scipy.stats import pearsonr
 import pickle
+import random
 
 
 #
@@ -99,9 +100,29 @@ del cycle_life['c32']
 del cycle_life['c38']
 del cycle_life['c39']
 
+#
+cycle_test = []
+cycle_else = []
+cycle_new=[]
+cycle_train_=[]
+
+random.seed(40240915)
+for key in cycle_life:
+    if 'b' in key:
+        cycle_train_.append(key)
+    else:
+        cycle_else.append(key)
+#
+random.shuffle(cycle_else)
+cycle_train = cycle_train_ +cycle_else[:32]
+cycle_val = cycle_else[32:39]
+cycle_test =cycle_else[39:]
+print('train, val, test:', len(cycle_train), len(cycle_val), len(cycle_test))
+
+#
 fea_num = 100
 n_cyc = 100
-in_stride = 10
+in_stride = 5
 stride = 1
 
 v_low = 3.36
@@ -110,106 +131,6 @@ q_low = 0.61
 q_upp = 1.19
 lbl_factor = 3000
 aux_factor = 1190
-
-a0_4 = {}
-ay0_4 = {}
-list_a = [0, 1, 2, 3, 4]
-list_b = [7, 8, 9, 15, 16]
-for i, num in enumerate(list_a):
-    fea_list = []
-    label_list = []
-    fea_list.append(None)
-    label_list.append(None)
-    b_num = list_b[i]
-    bat_life = cycle_life['a' + str(num)]
-    cyc_num = int(list(temp1[batch1['cycle_life'][num, 0]])[0][0]) - 1
-    for j in range(1, cyc_num):
-        I = list(temp1[temp1[batch1['cycles'][num, 0]]['I'][j, :][0]])[0]
-        try:
-            left_id = 0
-            left = np.where(np.abs(I - 1) < 0.001)[0][left_id]
-            while list(temp[temp[batch['cycles'][bat_num, 0]]['Qc'][j - 1, :][0]])[0][left] < 0.4:
-                left_id += 1
-                left = np.where(np.abs(I - 1) < 0.001)[0][left_id]
-            right = np.where(np.abs(I - 1) < 0.001)[0][-1]
-        except:
-            continue
-        if right - left <= 1:
-            continue
-
-        t = list(temp1[temp1[batch1['cycles'][num, 0]]['t'][j, :][0]])[0][left:right]
-        V = list(temp1[temp1[batch1['cycles'][num, 0]]['V'][j, :][0]])[0][left:right]
-        Vc = change(V, t, fea_num)
-        Qc = list(temp1[temp1[batch1['cycles'][num, 0]]['Qc'][j, :][0]])[0][left:right]
-        Qc = change(Qc, t, fea_num)
-        QD = list(temp1[batch1['summary'][num, 0]]['QDischarge'][0, :])[j]
-        tmp_fea = np.hstack((Vc.reshape(-1, 1), Qc.reshape(-1, 1)))
-
-        fea_list.append(tmp_fea)
-        label_list.append(QD)
-
-    new_num = int(list(temp2[batch2['cycle_life'][b_num, 0]])[0][0]) - 1
-    for j in range(new_num):
-
-        I = list(temp2[temp2[batch2['cycles'][b_num, 0]]['I'][j, :][0]])[0]
-        try:
-            left_id = 0
-            left = np.where(np.abs(I - 1) < 0.001)[0][left_id]
-            while list(temp[temp[batch['cycles'][bat_num, 0]]['Qc'][j - 1, :][0]])[0][left] < 0.4:
-                left_id += 1
-                left = np.where(np.abs(I - 1) < 0.001)[0][left_id]
-            right = np.where(np.abs(I - 1) < 0.001)[0][-1]
-        except:
-            continue
-        if right - left <= 1:
-            continue
-        t = list(temp2[temp2[batch2['cycles'][b_num, 0]]['t'][j, :][0]])[0][left:right]
-        V = list(temp2[temp2[batch2['cycles'][b_num, 0]]['V'][j, :][0]])[0][left:right]
-        Vc = change(V, t, fea_num)
-        Qc = list(temp2[temp2[batch2['cycles'][b_num, 0]]['Qc'][j, :][0]])[0][left:right]
-        Qc = change(Qc, t, fea_num)
-        QD = list(temp2[batch2['summary'][b_num, 0]]['QDischarge'][0, :])[j]
-        tmp_fea = np.hstack((Vc.reshape(-1, 1), Qc.reshape(-1, 1)))
-        fea_list.append(tmp_fea)
-        label_list.append(QD)
-        #
-    a0_4.update({num: fea_list})
-    ay0_4.update({num: label_list})
-
-numBat1 = 0
-numBat2 = 0
-numBat3 = 0
-for key in cycle_life.keys():
-    if 'a' in key:
-        numBat1 += 1
-    elif 'b' in key:
-        numBat2 += 1
-    elif 'c' in key:
-        numBat3 += 1
-numBat = numBat1 + numBat2 + numBat3
-
-# Train and Test Split
-test_ind = np.hstack((np.arange(0, (numBat1 + numBat2), 2), 83))
-train_ind = np.arange(1, (numBat1 + numBat2 - 1), 2)
-secondary_test_ind = np.arange(numBat - numBat3, numBat)
-
-print(len(train_ind), len(test_ind), len(secondary_test_ind))
-
-cycle_train = []
-cycle_test = []
-cycle_secondary = []
-
-for i, key in enumerate(cycle_life.keys()):
-    if i in train_ind:
-        cycle_train.append(key)
-    elif i in test_ind:
-        cycle_test.append(key)
-    elif i in secondary_test_ind:
-        cycle_secondary.append(key)
-
-print(len(cycle_train), len(cycle_test), len(cycle_secondary))
-
-
 
 def get_xy(cyc_num):
     fea = dict()
@@ -221,7 +142,6 @@ def get_xy(cyc_num):
         label_i = []
         aux_lbl = []
         for j in range(11, bat_life):
-            print(j)
             if key[0] == 'a':
                 temp = temp1
                 batch = batch1
@@ -233,17 +153,17 @@ def get_xy(cyc_num):
                 batch = batch3
 
             bat_num = int(key[1:])
-            if key[0] == 'a' and bat_num in [0, 1, 2, 3, 4]:
-
-                tmp_fea = a0_4[bat_num][j - 1]
-                QD = ay0_4[bat_num][j - 1]
-
+            # print(key, bat_life, bat_num)
+            if False:
+                pass
             else:
                 I = list(temp[temp[batch['cycles'][bat_num, 0]]['I'][j - 1, :][0]])[0]
+                QC = list(temp[batch['summary'][bat_num, 0]]['QCharge'][0, :])[j - 1]
                 try:
                     left_id = 0
                     left = np.where(np.abs(I - 1) < 0.001)[0][left_id]
-                    while list(temp[temp[batch['cycles'][bat_num, 0]]['Qc'][j - 1, :][0]])[0][left] < 0.4:
+
+                    while list(temp[temp[batch['cycles'][bat_num, 0]]['Qc'][j - 1, :][0]])[0][left] < QC * 0.8:
                         left_id += 1
                         left = np.where(np.abs(I - 1) < 0.001)[0][left_id]
                     right = np.where(np.abs(I - 1) < 0.001)[0][-1]
@@ -253,17 +173,21 @@ def get_xy(cyc_num):
                     continue
 
                 t = list(temp[temp[batch['cycles'][bat_num, 0]]['t'][j - 1, :][0]])[0][left:right]
+                I_ = list(temp[temp[batch['cycles'][bat_num, 0]]['I'][j - 1, :][0]])[0][left:right]
                 V = list(temp[temp[batch['cycles'][bat_num, 0]]['V'][j - 1, :][0]])[0][left:right]
+                T = list(temp[temp[batch['cycles'][bat_num, 0]]['T'][j - 1, :][0]])[0][left:right]
                 Qc = list(temp[temp[batch['cycles'][bat_num, 0]]['Qc'][j - 1, :][0]])[0][left:right]
-                Vc = change(V, t, fea_num)
+
+                V_ = change(V, t, fea_num)
                 Qc = change(Qc, t, fea_num)
                 QD = list(temp[batch['summary'][bat_num, 0]]['QDischarge'][0, :])[j - 1]
-                tmp_fea = np.hstack((Vc.reshape(-1, 1), Qc.reshape(-1, 1)))  # 100x2
 
+                tmp_fea = np.hstack((V_.reshape(-1, 1), Qc.reshape(-1, 1)))
             fea_i.append(np.expand_dims(tmp_fea, axis=0))
             label_i.append(bat_life - j)
             aux_lbl.append(QD)
-            print(aux_lbl)
+        if len(fea_i) < n_cyc:
+            continue
 
         all_fea = np.vstack(fea_i)
         all_lbl = np.array(label_i).reshape(-1, 1)
@@ -275,15 +199,15 @@ def get_xy(cyc_num):
         dif_fea = all_fea_c - all_fea_c[0:1, :, :]
         all_fea = np.concatenate((all_fea, dif_fea), axis=2)
 
-        all_fea = np.lib.stride_tricks.sliding_window_view(all_fea, (
-        n_cyc, fea_num, 4))
-        aux_lbl = np.lib.stride_tricks.sliding_window_view(aux_lbl, (
-        n_cyc,))
+        all_fea = np.lib.stride_tricks.sliding_window_view(all_fea, (n_cyc, fea_num, 4))
+        aux_lbl = np.lib.stride_tricks.sliding_window_view(aux_lbl, (n_cyc,))
         all_fea = all_fea.squeeze(axis=(1, 2,))
-        all_lbl = all_lbl[
-                  n_cyc - 1:]
+        all_lbl = all_lbl[n_cyc - 1:]
+        # print(all_fea.shape)
         all_fea = all_fea[::stride]
+        # print(all_fea.shape)
         all_fea = all_fea[:, ::in_stride, :, :]
+        # print(all_fea.shape)
         all_lbl = all_lbl[::stride]
         aux_lbl = aux_lbl[::stride]
         aux_lbl = aux_lbl[:, ::in_stride, ]
@@ -293,29 +217,30 @@ def get_xy(cyc_num):
         all_fea_new[:, :, :, 1] = (all_fea[:, :, :, 1] - q_low) / (q_upp - q_low)
         all_fea_new[:, :, :, 2] = all_fea[:, :, :, 2]
         all_fea_new[:, :, :, 3] = all_fea[:, :, :, 3]
+
         print(f'{key} length is {all_fea_new.shape[0]}',
               'v_max:', '%.4f' % all_fea_new[:, :, :, 0].max(),
+              'v_min:', '%.4f' % all_fea_new[:, :, :, 0].min(),
               'q_max:', '%.4f' % all_fea_new[:, :, :, 1].max(),
-              'dv_max:', '%.4f' % all_fea_new[:, :, :, 2].max(),
-              'dq_max:', '%.4f' % all_fea_new[:, :, :, 3].max())
+              'q_min:', '%.4f' % all_fea_new[:, :, :, 1].min(), '\n')
 
-        all_lbl = all_lbl / lbl_factor  # 3000
-        aux_lbl = aux_lbl / aux_factor  # 1190
-
+        # print(np.max(all_lbl), np.max(aux_lbl))
+        all_lbl = all_lbl / lbl_factor
+        aux_lbl = aux_lbl / aux_factor
+        # print(np.max(all_lbl), np.max(aux_lbl))
         fea.update({key: all_fea_new})
         label.update({key: np.hstack((all_lbl.reshape(-1, 1), aux_lbl))})
     return fea, label
 
 
-#
 fea, label = get_xy(cycle_train)
 save_obj(fea, './data/ne_data/fea_train')
 save_obj(label, './data/ne_data/label_train')
 
 fea, label = get_xy(cycle_test)
-save_obj(fea, './data/ne_data/fea_test')  # validation dataset
+save_obj(fea, './data/ne_data/fea_test')
 save_obj(label, './data/ne_data/label_test')
 
-fea, label = get_xy(cycle_secondary)
-save_obj(fea, './data/ne_data/fea_sec')  # testing dataset
-save_obj(label, './data/ne_data/label_sec')
+fea, label = get_xy(cycle_val)
+save_obj(fea, './data/ne_data/fea_val')
+save_obj(label, './data/ne_data/label_val')
